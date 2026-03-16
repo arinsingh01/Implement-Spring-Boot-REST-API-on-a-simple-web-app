@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartDevice | Hub Control</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo">SMARTDEVICE HUB</div>
+        <div class="status-indicator">
+            <div class="dot online"></div>
+            <span>System Online</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <h1>Device Registry</h1>
+            <button onclick="openModal()">+ Register Device</button>
+        </div>
+
+        <div id="deviceGrid" class="grid">
+            <!-- Cards will be injected here -->
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="deviceModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Register Device</h2>
+            <form id="deviceForm">
+                <input type="hidden" id="deviceId">
+                <label>Device Name</label>
+                <input type="text" id="deviceName" placeholder="e.g. Living Room Lamp" required>
+                
+                <label>Category</label>
+                <select id="deviceCategory" required>
+                    <option value="IoT">IoT Appliance</option>
+                    <option value="Security">Security System</option>
+                    <option value="Lighting">Lighting Control</option>
+                    <option value="Wearable">Wearable</option>
+                </select>
+
+                <label>Battery Level (%)</label>
+                <input type="number" id="deviceBattery" min="0" max="100" value="100">
+
+                <label>Description</label>
+                <textarea id="deviceDesc" rows="3" placeholder="Additional details..."></textarea>
+
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button type="submit" style="flex: 2;">Save Device</button>
+                    <button type="button" onclick="closeModal()" class="btn-toggle" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/devices';
+        const grid = document.getElementById('deviceGrid');
+        const modal = document.getElementById('deviceModal');
+        const form = document.getElementById('deviceForm');
+
+        async function fetchDevices() {
+            const res = await fetch(API_BASE);
+            const devices = await res.json();
+            renderDevices(devices);
+        }
+
+        function renderDevices(devices) {
+            grid.innerHTML = devices.length ? '' : '<p style="color:var(--text-dim)">No devices synced. Register one now.</p>';
+            devices.forEach(d => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="category">${d.category}</span>
+                        <div class="status-indicator">
+                            <div class="dot ${d.status.toLowerCase()}"></div>
+                            <span style="font-size:0.75rem">${d.status}</span>
+                        </div>
+                    </div>
+                    <h3>${d.name}</h3>
+                    <p>${d.description || 'No system logs available.'}</p>
+                    <div class="battery-bar">
+                        <div class="battery-fill" style="width: ${d.batteryLevel}%"></div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-toggle" onclick="toggleStatus(${d.id})">Toggle Power</button>
+                        <button class="btn-delete" onclick="deleteDevice(${d.id})">Remove</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('deviceId').value;
+            const data = {
+                name: document.getElementById('deviceName').value,
+                category: document.getElementById('deviceCategory').value,
+                batteryLevel: parseInt(document.getElementById('deviceBattery').value),
+                description: document.getElementById('deviceDesc').value
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/${id}` : API_BASE;
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            closeModal();
+            fetchDevices();
+        };
+
+        async function toggleStatus(id) {
+            await fetch(`${API_BASE}/${id}/toggle-status`, { method: 'PATCH' });
+            fetchDevices();
+        }
+
+        async function deleteDevice(id) {
+            if (confirm('Remove device from grid?')) {
+                await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+                fetchDevices();
+            }
+        }
+
+        function openModal(d = null) {
+            modal.style.display = 'flex';
+            if (d) {
+                document.getElementById('modalTitle').innerText = 'Update Device';
+                document.getElementById('deviceId').value = d.id;
+                document.getElementById('deviceName').value = d.name;
+                document.getElementById('deviceCategory').value = d.category;
+                document.getElementById('deviceBattery').value = d.batteryLevel;
+                document.getElementById('deviceDesc').value = d.description;
+            } else {
+                form.reset();
+                document.getElementById('deviceId').value = '';
+                document.getElementById('modalTitle').innerText = 'Register Device';
+            }
+        }
+
+        function closeModal() { modal.style.display = 'none'; }
+
+        window.onclick = (e) => { if (e.target == modal) closeModal(); }
+
+        fetchDevices();
+    </script>
+</body>
+</html>
