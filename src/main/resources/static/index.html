@@ -3,94 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartDevice | Hub Control</title>
+    <title>NexGen | Product Hub</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
-        <div class="logo">SMARTDEVICE HUB</div>
+        <div class="logo">NEXGEN INVENTORY</div>
         <div class="status-indicator">
             <div class="dot online"></div>
-            <span>System Online</span>
+            <span>Warehouse Sync: Active</span>
         </div>
     </header>
 
     <div class="container">
         <div class="controls">
-            <h1>Device Registry</h1>
-            <button onclick="openModal()">+ Register Device</button>
+            <h1>Product Registry</h1>
+            <button onclick="openModal()">+ Add Product</button>
         </div>
 
-        <div id="deviceGrid" class="grid">
+        <div id="productGrid" class="grid">
             <!-- Cards will be injected here -->
         </div>
     </div>
 
     <!-- Modal -->
-    <div id="deviceModal" class="modal">
+    <div id="productModal" class="modal">
         <div class="modal-content">
-            <h2 id="modalTitle">Register Device</h2>
-            <form id="deviceForm">
-                <input type="hidden" id="deviceId">
-                <label>Device Name</label>
-                <input type="text" id="deviceName" placeholder="e.g. Living Room Lamp" required>
+            <h2 id="modalTitle">Register Product</h2>
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <label>Product Name</label>
+                <input type="text" id="productName" placeholder="e.g. Quantum Processor" required>
                 
                 <label>Category</label>
-                <select id="deviceCategory" required>
-                    <option value="IoT">IoT Appliance</option>
-                    <option value="Security">Security System</option>
-                    <option value="Lighting">Lighting Control</option>
-                    <option value="Wearable">Wearable</option>
+                <select id="productCategory" required>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Hardware">Hardware</option>
+                    <option value="Software">Software</option>
+                    <option value="Apparel">Apparel</option>
                 </select>
 
-                <label>Battery Level (%)</label>
-                <input type="number" id="deviceBattery" min="0" max="100" value="100">
+                <div style="display: flex; gap: 15px;">
+                    <div style="flex: 1;">
+                        <label>Price ($)</label>
+                        <input type="number" id="productPrice" step="0.01" min="0" value="0.00" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Stock Qty</label>
+                        <input type="number" id="productStock" min="0" value="0" required>
+                    </div>
+                </div>
 
                 <label>Description</label>
-                <textarea id="deviceDesc" rows="3" placeholder="Additional details..."></textarea>
+                <textarea id="productDesc" rows="3" placeholder="Specifications..."></textarea>
 
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button type="submit" style="flex: 2;">Save Device</button>
-                    <button type="button" onclick="closeModal()" class="btn-toggle" style="flex: 1;">Cancel</button>
+                    <button type="submit" style="flex: 2;">Confirm Data</button>
+                    <button type="button" onclick="closeModal()" class="btn-toggle" style="flex: 1;">Abort</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        const API_BASE = '/api/devices';
-        const grid = document.getElementById('deviceGrid');
-        const modal = document.getElementById('deviceModal');
-        const form = document.getElementById('deviceForm');
+        const API_BASE = '/api/products';
+        const grid = document.getElementById('productGrid');
+        const modal = document.getElementById('productModal');
+        const form = document.getElementById('productForm');
 
-        async function fetchDevices() {
+        async function fetchProducts() {
             const res = await fetch(API_BASE);
-            const devices = await res.json();
-            renderDevices(devices);
+            const products = await res.json();
+            renderProducts(products);
         }
 
-        function renderDevices(devices) {
-            grid.innerHTML = devices.length ? '' : '<p style="color:var(--text-dim)">No devices synced. Register one now.</p>';
-            devices.forEach(d => {
+        function renderProducts(products) {
+            grid.innerHTML = products.length ? '' : '<p style="color:var(--text-dim)">Vault is empty. Add your first product.</p>';
+            products.forEach(p => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
                     <div class="card-header">
-                        <span class="category">${d.category}</span>
+                        <span class="category">${p.category}</span>
                         <div class="status-indicator">
-                            <div class="dot ${d.status.toLowerCase()}"></div>
-                            <span style="font-size:0.75rem">${d.status}</span>
+                            <div class="dot ${p.status === 'Available' ? 'online' : 'offline'}"></div>
+                            <span style="font-size:0.75rem">${p.status}</span>
                         </div>
                     </div>
-                    <h3>${d.name}</h3>
-                    <p>${d.description || 'No system logs available.'}</p>
-                    <div class="battery-bar">
-                        <div class="battery-fill" style="width: ${d.batteryLevel}%"></div>
+                    <h3>${p.name}</h3>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: 600;">
+                        <span style="color: var(--accent-primary)">$${p.price.toFixed(2)}</span>
+                        <span style="color: var(--text-dim)">Stock: ${p.stockQuantity}</span>
                     </div>
+                    <p>${p.description || 'No datasheet provided.'}</p>
                     <div class="actions">
-                        <button class="btn-toggle" onclick="toggleStatus(${d.id})">Toggle Power</button>
-                        <button class="btn-delete" onclick="deleteDevice(${d.id})">Remove</button>
+                        <button class="btn-toggle" onclick="toggleAvailability(${p.id})">${p.status === 'Available' ? 'Mark Sold Out' : 'Mark Available'}</button>
+                        <button class="btn-delete" onclick="deleteProduct(${p.id})">Delete</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -99,12 +108,13 @@
 
         form.onsubmit = async (e) => {
             e.preventDefault();
-            const id = document.getElementById('deviceId').value;
+            const id = document.getElementById('productId').value;
             const data = {
-                name: document.getElementById('deviceName').value,
-                category: document.getElementById('deviceCategory').value,
-                batteryLevel: parseInt(document.getElementById('deviceBattery').value),
-                description: document.getElementById('deviceDesc').value
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stockQuantity: parseInt(document.getElementById('productStock').value),
+                description: document.getElementById('productDesc').value
             };
 
             const method = id ? 'PUT' : 'POST';
@@ -117,34 +127,35 @@
             });
 
             closeModal();
-            fetchDevices();
+            fetchProducts();
         };
 
-        async function toggleStatus(id) {
-            await fetch(`${API_BASE}/${id}/toggle-status`, { method: 'PATCH' });
-            fetchDevices();
+        async function toggleAvailability(id) {
+            await fetch(`${API_BASE}/${id}/toggle-availability`, { method: 'PATCH' });
+            fetchProducts();
         }
 
-        async function deleteDevice(id) {
-            if (confirm('Remove device from grid?')) {
+        async function deleteProduct(id) {
+            if (confirm('Erase product from ledger?')) {
                 await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
-                fetchDevices();
+                fetchProducts();
             }
         }
 
-        function openModal(d = null) {
+        function openModal(p = null) {
             modal.style.display = 'flex';
-            if (d) {
-                document.getElementById('modalTitle').innerText = 'Update Device';
-                document.getElementById('deviceId').value = d.id;
-                document.getElementById('deviceName').value = d.name;
-                document.getElementById('deviceCategory').value = d.category;
-                document.getElementById('deviceBattery').value = d.batteryLevel;
-                document.getElementById('deviceDesc').value = d.description;
+            if (p) {
+                document.getElementById('modalTitle').innerText = 'Update Product';
+                document.getElementById('productId').value = p.id;
+                document.getElementById('productName').value = p.name;
+                document.getElementById('productCategory').value = p.category;
+                document.getElementById('productPrice').value = p.price;
+                document.getElementById('productStock').value = p.stockQuantity;
+                document.getElementById('productDesc').value = p.description;
             } else {
                 form.reset();
-                document.getElementById('deviceId').value = '';
-                document.getElementById('modalTitle').innerText = 'Register Device';
+                document.getElementById('productId').value = '';
+                document.getElementById('modalTitle').innerText = 'Register Product';
             }
         }
 
@@ -152,7 +163,8 @@
 
         window.onclick = (e) => { if (e.target == modal) closeModal(); }
 
-        fetchDevices();
+        fetchProducts();
     </script>
+
 </body>
 </html>

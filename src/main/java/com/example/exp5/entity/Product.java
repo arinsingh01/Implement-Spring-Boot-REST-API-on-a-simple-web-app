@@ -4,30 +4,33 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 
 @Entity
-public class SmartDevice {
+public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Device name is mandatory")
+    @NotBlank(message = "Product name is mandatory")
     private String name;
 
     @NotBlank(message = "Category is mandatory")
     private String category;
 
-    private String status = "Offline"; // Online or Offline
+    @Positive(message = "Price must be positive")
+    private Double price;
 
-    @Min(0) @Max(100)
-    private Integer batteryLevel = 100;
+    @Min(0)
+    private Integer stockQuantity = 0;
+
+    private String status = "Available"; // Available or Out of Stock
 
     private String description;
 
-    public SmartDevice() {}
+    public Product() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -38,11 +41,14 @@ public class SmartDevice {
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+
+    public Integer getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
-    public Integer getBatteryLevel() { return batteryLevel; }
-    public void setBatteryLevel(Integer batteryLevel) { this.batteryLevel = batteryLevel; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
